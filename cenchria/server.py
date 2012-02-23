@@ -23,9 +23,8 @@ from select import select
 import weakref
 
 class SocketHandler(object):
-    def __init__(self, socket):
-        self.socket = socket
-        socket.setblocking(0)
+    def __init__(self):
+        self.__socket = None
     
     def fileno(self):
         return self.socket.fileno()
@@ -35,12 +34,21 @@ class SocketHandler(object):
     
     def close(self):
         self.socket.close()
+    
+    @property
+    def socket(self):
+        return self.__socket
+    
+    @socket.setter
+    def socket(self, socket):
+        socket.setblocking(0)
+        self.__socket = socket
 
 class Client(SocketHandler):
-    def __init__(self, socket, host, port):
-        SocketHandler.__init__(self, socket)
-        self.host = host
-        self.port = port
+    def __init__(self):
+        SocketHandler.__init__(self)
+        self.host = None
+        self.port = None
         self.shouldSelectForRead = 1
         self.shouldSelectForWrite = 0
         self.shouldSelectForError = 0
@@ -80,9 +88,9 @@ class Client(SocketHandler):
 
 class ServerSocket(SocketHandler):
     def __init__(self):
-        SocketHandler.__init__(self, socket.socket(
-            socket.AF_INET, socket.SOCK_STREAM))
+        SocketHandler.__init__(self)
         
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)        
         
         self.read = []
@@ -105,13 +113,18 @@ class ClientManager(object):
         self.clients = []
     
     def clientJoined(self, socket, host, port):
-        client = self.makeClient(socket, host, port)
+        client = self.makeClient()
+        
+        client.socket = socket
+        client.host = host
+        client.port = port
         client.manager = weakref.proxy(self)
+        
         self.logClientJoin(client)
         self.clients.append(client)
     
-    def makeClient(self, socket, host, port):
-        return Client(socket, host, port)
+    def makeClient(self):
+        return Client()
     
     def clientLeft(self, client):
         self.logClientLeave(client)

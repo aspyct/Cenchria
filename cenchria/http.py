@@ -20,11 +20,48 @@
 
 import server as cserver
 
-class Client(cserver.Client):
+class HttpRequest(object):
+    def __init__(self):
+        self.headers = {}
+        self.body = None
+        self.tmp = ""
+        self.firstLine = None
+    
+    def addData(self, data):
+        tmp = self.tmp + data
+        
+        eol = tmp.find("\n")
+        while eol >= 0:
+            start = eol
+            if tmp[start - 1] == "\r":
+                start -= 1
+            
+            headerLine = tmp[:start]
+            
+            if headerLine:
+                if self.firstLine is None:
+                    self.firstLine = headerLine
+                    print("First line: %s" % headerLine)
+                else:
+                    print("Received header: %s" % repr(headerLine))
+            else:
+                print("End of headers")
+            
+            tmp = tmp[eol + 1:]
+            
+            eol = tmp.find("\n")
+        
+        self.tmp = tmp
+
+class HttpClient(cserver.Client):
+    def __init__(self):
+        cserver.Client.__init__(self)
+        self.currentRequest = HttpRequest()
+    
     def handleIncomingData(self, data):
-        self.manager.sendToAll(data, self)
+        self.currentRequest.addData(data)
 
 if __name__ == '__main__':
     runner = cserver.CommandLineRunner()
-    runner.server.clientManager.makeClient = Client
+    runner.server.clientManager.makeClient = HttpClient
     runner.run()
