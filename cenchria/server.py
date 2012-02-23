@@ -142,7 +142,7 @@ class CommandLineRunner(object):
     
     def run(self):
         try:
-            print("Starting server on 127.0.0.1:8080")
+            print("Starting server on %s:%s" % (server.host, server.port))
             self.server.run()
         except KeyboardInterrupt:
             try:
