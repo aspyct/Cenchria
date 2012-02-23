@@ -5,9 +5,16 @@ class Client(cserver.Client):
         if len(data) == 1:
             print(ord(data))
         else:
-            print(data.strip())
+            self.sendToAll(data, self)
 
 if __name__ == '__main__':
     server = cserver.Server("127.0.0.1", 8080)
-    server.clientManager.makeClient = lambda s, h, p: Client(s, h, p)
+    
+    def makeClient(socket, host, port):
+        client = Client(socket, host, port)
+        client.sendToAll = server.clientManager.sendToAll
+        return client
+
+    server.clientManager.makeClient = makeClient    
+    
     cserver.CommandLineRunner(server).run()
