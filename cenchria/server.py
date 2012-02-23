@@ -1,5 +1,6 @@
 import socket
 from select import select
+import weakref
 
 class SocketHandler(object):
     def __init__(self, socket):
@@ -85,6 +86,7 @@ class ClientManager(object):
     
     def clientJoined(self, socket, host, port):
         client = self.makeClient(socket, host, port)
+        client.manager = weakref.proxy(self)
         self.logClientJoin(client)
         self.clients.append(client)
     
@@ -176,9 +178,9 @@ class Server(object):
             self.ssocket.close()
 
 class CommandLineRunner(object):
-    def __init__(self, server=None):
+    def __init__(self, server=None, defaultHost="127.0.0.1", defaultPort=8080):
         if server is None:
-            server = self.serverFromArguments()
+            server = self.serverFromArguments(defaultHost, defaultPort)
         
         self.server = server
     
@@ -205,7 +207,7 @@ class CommandLineRunner(object):
             
             self.server.shutdown(now=True)
     
-    def serverFromArguments(self):
+    def serverFromArguments(self, defaultHost, defaultPort):
         import sys
         
         if len(sys.argv) >= 3:
@@ -214,7 +216,7 @@ class CommandLineRunner(object):
             
             return Server(host, port)
         else:
-            print("Usage: <command> <host> <port>")
+            return Server(defaultHost, defaultPort)
 
 if __name__ == "__main__":
     CommandLineRunner().run()
