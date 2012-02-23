@@ -99,9 +99,10 @@ class ClientManager(object):
         for client in self.clients:
             client.close()
     
-    def sendToAll(self, data):
+    def sendToAll(self, data, *but):
         for client in self.clients:
-            client.send(data)
+            if client not in but:
+                client.send(data)
     
     def logClientJoin(self, client):
         print("Client joined from %s:%s", (client.host, client.port))
