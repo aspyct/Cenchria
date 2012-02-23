@@ -88,15 +88,12 @@ class Server(object):
         self.ssocket = None
         self.acceptQueueLength = 10
         self.stop = False
-        self.clientManager = None
+        self.clientManager = ClientManager()
     
     def run(self):
         if self.ssocket is not None:
             # Server already in use
             raise ServiceException("Server already in use")
-        
-        if self.clientManager is None:
-            self.clientManager = ClientManager()
         
         # Create an IPv4 server socket
         self.ssocket = ServerSocket()
