@@ -60,9 +60,12 @@ class ClientManager(object):
         self.clients = []
     
     def clientJoined(self, socket, host, port):
-        client = Client(socket, host, port)
+        client = self.makeClient(socket, host, port)
         self.logClientJoin(client)
         self.clients.append(client)
+    
+    def makeClient(self, socket, host, port):
+        return Client(socket, host, port)
     
     def clientLeft(self, client):
         self.logClientLeave(client)
