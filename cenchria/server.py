@@ -28,6 +28,7 @@ class Client(SocketHandler):
             return False
         else:
             self.handleIncomingData(data)
+            return True
     
     def handleIncomingData(self, data):
         # Override me
@@ -137,12 +138,20 @@ class Server(object):
             self.ssocket.close()
 
 class CommandLineRunner(object):
-    def __init__(self, server):
+    def __init__(self, server=None):
+        if server is None:
+            server = self.serverFromArguments()
+        
         self.server = server
     
     def run(self):
+        if self.server is None:
+            print("Could not optain a runnable server. Cancelling")
+            return
+        
         try:
-            print("Starting server on %s:%s" % (server.host, server.port))
+            print("Starting server on %s:%s" % (self.server.host,
+                                                self.server.port))
             self.server.run()
         except KeyboardInterrupt:
             try:
@@ -157,6 +166,17 @@ class CommandLineRunner(object):
             print e
             
             self.server.shutdown(now=True)
+    
+    def serverFromArguments(self):
+        import sys
+        
+        if len(sys.argv) >= 3:
+            host = sys.argv[1]
+            port = int(sys.argv[2])
+            
+            return Server(host, port)
+        else:
+            print("Usage: <command> <host> <port>")
 
 if __name__ == "__main__":
-    CommandLineRunner(Server("127.0.0.1", 8080)).run()
+    CommandLineRunner().run()
