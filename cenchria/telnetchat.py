@@ -1,9 +1,10 @@
-import cenchria.server
+import server as cserver
 
-class Client(cenchria.server.Client):
+class Client(cserver.Client):
     def handleIncomingData(self, data):
         print(data)
 
-class ClientManager(cenchria.server.ClientManager):
-    def clientJoined(self, socket, host, port):
-        return Client(socket, host, port)
+if __name__ == '__main__':
+    server = cserver.Server("127.0.0.1", 8080)
+    server.clientManager.makeClient = lambda s, h, p: Client(s, h, p)
+    cserver.CommandLineRunner(server).run()
