@@ -4,6 +4,7 @@ from select import select
 class SocketHandler(object):
     def __init__(self, socket):
         self.socket = socket
+        socket.setblocking(0)
     
     def fileno(self):
         return self.socket.fileno()
@@ -19,6 +20,10 @@ class Client(SocketHandler):
         SocketHandler.__init__(self, socket)
         self.host = host
         self.port = port
+        self.shouldSelectForRead = 1
+        self.shouldSelectForWrite = 0
+        self.shouldSelectForError = 0
+        self.queue = []
     
     def read(self):
         """Returns true if this socket is still alive, false otherwise"""
@@ -29,6 +34,24 @@ class Client(SocketHandler):
         else:
             self.handleIncomingData(data)
             return True
+    
+    def send(self, data):
+        try:
+            self.socket.send(data)
+        except socket.error:
+            # Would block
+            self.shouldSelectForWrite += 1
+            self.queue.append(data)
+    
+    def processSendQueue(self):
+        data = self.queue[0]
+        try:
+            self.socket.send(data)
+            self.queue.pop(0)
+            self.shouldSelectForWrite -= 1
+        except socket.error:
+            # Still cannot write, strange...
+            pass
     
     def handleIncomingData(self, data):
         # Override me
@@ -76,6 +99,10 @@ class ClientManager(object):
         for client in self.clients:
             client.close()
     
+    def sendToAll(self, data):
+        for client in self.clients:
+            client.send(data)
+    
     def logClientJoin(self, client):
         print("Client joined from %s:%s", (client.host, client.port))
     
@@ -103,15 +130,25 @@ class Server(object):
         self.loop()
     
     def loop(self):
-        while not self.stop or self.clientManager.clients:
-            read = self.clientManager.clients
+        while not self.stop or self.clientManager.clients:            
+            read = []
+            write = []
+            error = []
+            
+            for client in self.clientManager.clients:
+                if client.shouldSelectForRead:
+                    read.append(client)
+                
+                if client.shouldSelectForWrite:
+                    write.append(client)
+                
+                if client.shouldSelectForError:
+                    error.append(client)
             
             if not self.stop:
                 # Add the server only if we're not stopping it
-                read = read + [self.ssocket]
+                read.append(self.ssocket)
             
-            write = []
-            error = []
             readable, writable, errored = select(read, write, error)
             
             for socket in readable:
